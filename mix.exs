@@ -47,7 +47,8 @@ defmodule Supershittycity.MixProject do
       {:quantum, "~> 2.3"},
       {:timex, "~> 3.0"},
       {:redix, "~> 0.10.2"},
-      {:castore, ">= 0.0.0"}
+      {:castore, ">= 0.0.0"},
+      {:mint, "~> 0.2.0"}
     ]
   end
 

@@ -19,8 +19,8 @@ config :supershittycity, SupershittycityWeb.Endpoint,
 
 config :supershittycity, Supershittycity.Scheduler,
   jobs: [
-    # Every minute
-    {"* * * * *", {Supershittycity.Application, :fetch_poop, []}}
+    # Every 10 minutes
+    {"*/10 * * * *", {Supershittycity.Application, :fetch_poop, []}}
   ]
 
 
