@@ -4,9 +4,12 @@ defmodule Supershittycity.Application do
   @moduledoc false
 
   use Application
+  use Supervisor
   require Logger
 
   def start(_type, _args) do
+    redis_conn = Application.get_env(:redix, :conn)
+    redis_name = Application.get_env(:redix, :name)
     # List all child processes to be supervised
     children = [
       # Start the Ecto repository
@@ -18,7 +21,7 @@ defmodule Supershittycity.Application do
 
       Supershittycity.Scheduler,
 
-      {Redix, name: :redix}
+      worker(Redix, [redis_conn, redis_name])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -39,13 +42,13 @@ defmodule Supershittycity.Application do
     # https://data.sfgov.org/resource/vw6y-z8j6.json
     # https://data.sfgov.org/resource/vw6y-z8j6.json?$where=starts_with(service_subtype,%20%27Human%20or%20Animal%27)%20AND%20closed_date%20%3E%20%272019-07-20T06:25:32%27&$select=(count(service_request_id))
     {:ok, http_conn} = Mint.HTTP.connect(:http, "data.sfgov.org", 80)
-    {:ok, http_conn, _request_ref} = Mint.HTTP.request(http_conn, "GET", "/resource/vw6y-z8j6.json?$where=starts_with(service_subtype,%20%27Human%20or%20Animal%27)%20AND%20closed_date%20%3E%20%272019-07-20T06:25:32%27&$select=(count(service_request_id))", [], "")
+    {:ok, http_conn, _request_ref} = Mint.HTTP.request(http_conn, "GET", "/resource/vw6y-z8j6.json?$where=starts_with(service_subtype,%20%27Human%20or%20Animal%27)%20AND%20requested_datetime%20%3E%20%272019-07-20T06:25:32%27&$select=(count(service_request_id))", [], "")
     receive do
       message ->
-        {:ok, _http_conn, responses} = Mint.HTTP.stream(http_conn, message)
+        Mint.HTTP.stream(http_conn, message)
         |> case do
              {:error, reason} -> Logger.error("Could not connect to sf.gov: #{reason}")
-             {:ok, _, responses} -> handle_responses(responses)
+             {:ok, _, responses} -> handle_response(responses)
            end
     end
   end
@@ -53,7 +56,7 @@ defmodule Supershittycity.Application do
   def handle_response(responses) do
     case responses do
       [{:status, _, 200}, {:headers, _, _}, {:data, _,  body}, {:done, _}] -> parse_body(body)
-      [{:status, _, code} | _] -> Logger.error("sf.gov returned status #{status}")
+      [{:status, _, code} | _] -> Logger.error("sf.gov returned status #{code}")
     end
   end
 

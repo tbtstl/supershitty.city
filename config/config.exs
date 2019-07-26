@@ -32,6 +32,22 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Configure Redix
+redis_url = System.get_env("REDIS_URL") || raise("missing env variable: REDIS_URL")
+config :redix, conn: redis_url, name: [name: :redix]
+
+# Set proper redis url for exq
+redis_uri = URI.parse(redis_url)
+redis_password = case redis_uri.userinfo do
+                   nil -> nil
+                   ui -> List.last(String.split(ui, ":"))
+                 end
+config :exq,
+  name: Exq,
+  host: redis_uri.host || "127.0.0.1",
+  password: redis_password, 
+  port: redis_uri.port || 6379
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
