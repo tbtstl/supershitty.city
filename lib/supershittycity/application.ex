@@ -5,6 +5,7 @@ defmodule Supershittycity.Application do
 
   use Application
   use Supervisor
+  use Timex
   require Logger
 
   def start(_type, _args) do
@@ -42,7 +43,12 @@ defmodule Supershittycity.Application do
     # https://data.sfgov.org/resource/vw6y-z8j6.json
     # https://data.sfgov.org/resource/vw6y-z8j6.json?$where=starts_with(service_subtype,%20%27Human%20or%20Animal%27)%20AND%20closed_date%20%3E%20%272019-07-20T06:25:32%27&$select=(count(service_request_id))
     {:ok, http_conn} = Mint.HTTP.connect(:http, "data.sfgov.org", 80)
-    {:ok, http_conn, _request_ref} = Mint.HTTP.request(http_conn, "GET", "/resource/vw6y-z8j6.json?$where=starts_with(service_subtype,%20%27Human%20or%20Animal%27)%20AND%20requested_datetime%20%3E%20%272019-07-20T06:25:32%27&$select=(count(service_request_id))", [], "")
+    date = Timex.now
+    |> Timex.shift(days: -7)
+    |> Timex.format!("{ISO:Extended}")
+    |> String.split(".")
+    |> List.first
+    {:ok, http_conn, _request_ref} = Mint.HTTP.request(http_conn, "GET", "/resource/vw6y-z8j6.json?$where=starts_with(service_subtype,%20%27Human%20or%20Animal%27)%20AND%20requested_datetime%20%3E%20%27#{date}%27&$select=(count(service_request_id))", [], "")
     receive do
       message ->
         Mint.HTTP.stream(http_conn, message)
