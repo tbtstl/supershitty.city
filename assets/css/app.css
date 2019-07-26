@@ -1,3 +1,61 @@
 /* This file is for your main application css. */
 
-@import "./phoenix.css";
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+html, body {
+    background-color: #FAFAFA;
+    color: #010101;
+    font-family: 'Patua One', cursive;
+    margin: 0;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+div {
+    font-size: 24px;
+}
+
+div.number {
+    background: linear-gradient(180deg,rgba(255,255,255,0) 50%, #E05C5C 50%);
+    font-size: 80px;
+}
+
+div.description {
+    opacity: 0;
+    animation: fade-in 1s ease 1s 1 normal forwards;
+    padding: 10px 20px;
+}
+
+div.source {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 14px;
+}
+
+a {
+    color: inherit;
+    text-decoration: underline #E05C5C;
+}
+
+@media (max-width: 400px) {
+    div {
+        font-size: 16px;
+    }
+}
+
