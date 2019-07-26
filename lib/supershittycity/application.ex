@@ -4,6 +4,7 @@ defmodule Supershittycity.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -15,7 +16,9 @@ defmodule Supershittycity.Application do
       # Starts a worker by calling: Supershittycity.Worker.start_link(arg)
       # {Supershittycity.Worker, arg},
 
-      Supershittycity.Scheduler
+      Supershittycity.Scheduler,
+
+      {Redix, name: :redix}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -40,10 +43,33 @@ defmodule Supershittycity.Application do
     receive do
       message ->
         {:ok, _http_conn, responses} = Mint.HTTP.stream(http_conn, message)
-        [{:status, _, 200}, {:headers, _, _}, {:data, _,  body}, {:done, _}] = responses
-        {:ok, [%{"count_service_request_id" => count}]}= Jason.decode(body)
-        {:ok, conn} = Redix.start_link("redis://localhost:6379/3")
-        Redix.command(conn, ["SET", "poop", count])
+        |> case do
+             {:error, reason} -> Logger.error("Could not connect to sf.gov: #{reason}")
+             {:ok, _, responses} -> handle_responses(responses)
+           end
     end
+  end
+
+  def handle_response(responses) do
+    case responses do
+      [{:status, _, 200}, {:headers, _, _}, {:data, _,  body}, {:done, _}] -> parse_body(body)
+      [{:status, _, code} | _] -> Logger.error("sf.gov returned status #{status}")
+    end
+  end
+
+  def parse_body(body) do
+    Jason.decode(body)
+    |> case do
+         {:ok, [%{"count_service_request_id" => count}]} -> set_poop(count)
+         _ -> Logger.error("Could not parse JSON: #{body}")
+       end
+  end
+
+  def set_poop(count) do
+    Redix.command(:redix, ["SET", "poop", count])
+    |> case do
+         {:ok, _} -> Logger.info("Set #{count} poop in redis")
+         {:error, reason} -> Logger.error("Could not set poop in redis: #{reason}")
+       end
   end
 end
